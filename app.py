@@ -9,7 +9,8 @@
 # otherwise, flask run --host=0.0.0.0 --port=5001 --cert=adhoc --debug
 #  
 # TODO
-# add debugging import logging 
+# add debugging import logging
+# https://stackoverflow.com/questions/2018026/what-are-the-differences-between-the-urllib-urllib2-urllib3-and-requests-modul  
 
 
 from flask import Flask, render_template, request
@@ -21,21 +22,27 @@ import json
   
 # urllib.request to make a request to api 
 import urllib.request 
-  
+import urllib  
 
 # Configure logging
 logging.basicConfig(filename='app.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-# stop-gap. Fetch geospital by city name
-# for brevity from predefined value in file. There are tel-aviv and london
-def get_location(city: str ="tel-aviv"):
-  return ("32.085300","34.781769") #FOR DEBUG ONLY!!!
-
-
-
 app = Flask(__name__)
+
+''' commented
+@app.errorhandler(404)
+def page_not_found(e):
+    # note that we set the 404 status explicitly
+    return render_template('404.html'), 404
+'''
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    # note that we set the 500 status explicitly
+    return render_template('500.html'), 500
+
 
 @app.route("/hello")
 def hello_world():
@@ -67,9 +74,6 @@ def catch_all(city):
     api = os.environ.get("WEATHER_API_TOKEN",None)
 
     logging.debug(f"API requested: {api=}")
-    lat,lon=get_location()
-    part="alerts" #optional
-    logging.debug(f"latitude requested: {lat=}")
 
     # source contain json data from api 
     # https://openweathermap.org/api/one-call-3#how 
@@ -78,7 +82,7 @@ def catch_all(city):
     # https://api.openweathermap.org/data/2.5/weather?q=london,uk&APPID=7da1d1af130566e75827795ef5b30af9
     url=f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api}"
 
-    logging.debug(f"URI requested: {url=}")
+    logging.debug(f"URI requested: {url=}  ")
 
     try:
 
@@ -96,14 +100,19 @@ def catch_all(city):
           "pressure": str(list_of_data['main']['pressure']), 
           "humidity": str(list_of_data['main']['humidity']), 
       } 
-      print(data) 
+      logging.debug(data) 
       return render_template('index.html', data = data) 
 
     except urllib.error.HTTPError as e :
       print(f"HTTP error occurred: {e.code} - {e.reason}")
       logging.error(f"HTTP error occurred: {e.code} - {e.reason}")
-      return render_template('404.html', data = {})
+      return render_template('404.html', data = {"error":e.code,"cityname":city} )
 
+    except Exception as e :
+      logging.error(f"Error occurred:333 {e.code} - {e.reason}")
+      print(f"Error occurred: {e.code} - {e.reason}")
+      return render_template('500.html', data = {} )
+      
 # only if script started with 'python app.py'. 
 if __name__ == "__main__" or True: #
   host = os.getenv('FLASK_HOST', '0.0.0.0')
