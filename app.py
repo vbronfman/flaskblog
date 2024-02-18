@@ -13,7 +13,7 @@
 # https://stackoverflow.com/questions/2018026/what-are-the-differences-between-the-urllib-urllib2-urllib3-and-requests-modul  
 
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, jsonify  #, request
 import os
 import logging
 
@@ -23,6 +23,7 @@ import json
 # urllib.request to make a request to api 
 import urllib.request 
 import urllib  
+import requests
 
 # Configure logging
 logging.basicConfig(filename='app.log', level=logging.DEBUG,
@@ -88,21 +89,25 @@ def catch_all(city):
 
     try:
 
-      source = urllib.request.urlopen(url).read()   # employs urllib to return JSON of  weather data
- 
+      # source = urllib.request.urlopen(url).read()   # Employs urllib to return JSON of  weather data
+      response = requests.get(url)  # Employs "requests" to return JSON of  weather data
+      
       # converting JSON data to a dictionary 
-      list_of_data = json.loads(source) 
-      logging.debug(list_of_data)
+      # weather_data_json = json.loads(source)  # Abandoned in favor of requests package
+      weather_data_json = response.json()
+      
+ 
+      logging.debug(f"using request returns: {weather_data_json}")
   
-      # data for variable list_of_data , actual data to display
+      # data for variable weather_data_json , actual data to display
       data = { 
-          "cityname": str(list_of_data["name"]),
-          "country_code": str(list_of_data['sys']['country']), 
-          "coordinate": str(list_of_data['coord']['lon']) + ' ' 
-                    + str(list_of_data['coord']['lat']), 
-          "temp": str(list_of_data['main']['temp']) + ' C', 
-          "pressure": str(list_of_data['main']['pressure']), 
-          "humidity": str(list_of_data['main']['humidity']), 
+          "cityname": str(weather_data_json["name"]),
+          "country_code": str(weather_data_json['sys']['country']), 
+          "coordinate": str(weather_data_json['coord']['lon']) + ' ' 
+                    + str(weather_data_json['coord']['lat']), 
+          "temp": str(weather_data_json['main']['temp']) + ' C', 
+          "pressure": str(weather_data_json['main']['pressure']), 
+          "humidity": str(weather_data_json['main']['humidity']), 
       }
  
       logging.debug(data)
