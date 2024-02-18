@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>weather</title>
+  <title>Weather API</title>
   <!-- Latest compiled and minified CSS -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
 
@@ -16,15 +16,20 @@
 </head>
 
 <body>
-  <nav class="row" style="background: #337ab7; color: white;">
-    <h1 class="col-md-3 text-center">weather</h1>
+  <nav class="row" style="background: #ff8033; color: white;">
+    <h1 class="col-md-3 text-center">error</h1>
   </nav>
   <br />
   <br />
   <div class="row">
-    <div class="col-md-6 col-md-offset-3">
-      <h3>ERROR : {{data.error}} City not found </h1>
-        <h5>City name : {{data.cityname}}</h5>
+    <div class="col-md-9 col-md-offset-3 text-left">
+      <h3>ERROR 500: Validate URL and try to refresh the page </h3>  
+  <br />
+      <h4> Remote weather API returns : </h4>
+        {{data.error}} <br />
+      <h4> The possible reason: </h4>
+        City name contains spaces or special symbols. <br />
+  <br />
     </div>
   </div>
 </body>

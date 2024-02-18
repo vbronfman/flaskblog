@@ -9,7 +9,7 @@
 # otherwise, flask run --host=0.0.0.0 --port=5001 --cert=adhoc --debug
 #  
 # TODO
-# add debugging import logging
+# refactore and replace urllib with regular request
 # https://stackoverflow.com/questions/2018026/what-are-the-differences-between-the-urllib-urllib2-urllib3-and-requests-modul  
 
 
@@ -29,19 +29,21 @@ logging.basicConfig(filename='app.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-app = Flask(__name__)
+app = Flask(__name__)  
 
-''' commented
+
+''' commented, not in use
 @app.errorhandler(404)
 def page_not_found(e):
     # note that we set the 404 status explicitly
     return render_template('404.html'), 404
-'''
+
 
 @app.errorhandler(500)
 def internal_server_error(e):
     # note that we set the 500 status explicitly
     return render_template('500.html'), 500
+'''
 
 
 @app.route("/hello")
@@ -49,25 +51,24 @@ def hello_world():
     return "<p>Hello, World!</p>"
 
 
-@app.route('/', defaults={'path': ''}, methods =['POST', 'GET'])
-@app.route('/<path:city>')
+# https://stackoverflow.com/questions/15117416/capture-arbitrary-path-in-flask-route 
+@app.route('/', defaults={'city': ''}, methods =['POST', 'GET']) # for empty path
+@app.route('/<path:city>', methods =['POST', 'GET'])
 def catch_all(city):
-#    return f"You entered: {city}"
-    logging.info(f"URI requested: {city}")
+    '''
+    Arbitary route of <host:port>/*
+    Considers whatever text after "/"  as city name
+    '''
+    
+    logging.info(f"URI requested: {city=}")
 
-
-#@app.route('/tel-aviv', methods =['POST', 'GET']) 
-#def weather(): 
-    #if request.method == 'POST': 
-    #    city = request.form['city']
-    if city:
+    if city :
       logging.info(f"URI requested: {city=}")
-        #return f"The URI you entered is: {city}"
+      # return f"The URI you entered is: {city}"
     else:
       logging.warning("No URI provided in the request.")
-      logging.warning( "Provide a URI in the 'city' query parameter. Set default tel-aviv")
-# for default name tel-aviv
-      city = 'tel-aviv'
+      logging.warning( "Provide a URI in the 'city' query parameter.xx ")
+      return render_template('404.html', data = {"error":"Empty city: requires city name","cityname":city} )
        
   
     # openweathermap.org  API key. Have to obtain upfront 
@@ -80,28 +81,33 @@ def catch_all(city):
     # https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude={part}&appid={API key} 
     # api.openweathermap.org/data/2.5/onecall?lat=32.085300&lon=34.781769&exclude=alerts&appid=7da1d1af130566e75827795ef5b30af9 
     # https://api.openweathermap.org/data/2.5/weather?q=london,uk&APPID=7da1d1af130566e75827795ef5b30af9
-    url=f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api}"
+    
+    url=f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api}&units=metric"
 
     logging.debug(f"URI requested: {url=}  ")
 
     try:
 
-      source = urllib.request.urlopen(url).read() 
+      source = urllib.request.urlopen(url).read()   # employs urllib to return JSON of  weather data
  
       # converting JSON data to a dictionary 
       list_of_data = json.loads(source) 
+      logging.debug(list_of_data)
   
-      # data for variable list_of_data 
+      # data for variable list_of_data , actual data to display
       data = { 
+          "cityname": str(list_of_data["name"]),
           "country_code": str(list_of_data['sys']['country']), 
           "coordinate": str(list_of_data['coord']['lon']) + ' ' 
                     + str(list_of_data['coord']['lat']), 
-          "temp": str(list_of_data['main']['temp']) + 'k', 
+          "temp": str(list_of_data['main']['temp']) + ' C', 
           "pressure": str(list_of_data['main']['pressure']), 
           "humidity": str(list_of_data['main']['humidity']), 
-      } 
-      logging.debug(data) 
-      return render_template('index.html', data = data) 
+      }
+ 
+      logging.debug(data)
+ 
+      return render_template('index.html', data = data)  # renders page with results 
 
     except urllib.error.HTTPError as e :
       print(f"HTTP error occurred: {e.code} - {e.reason}")
@@ -109,21 +115,21 @@ def catch_all(city):
       return render_template('404.html', data = {"error":e.code,"cityname":city} )
 
     except Exception as e :
-      logging.error(f"Error occurred:333 {e.code} - {e.reason}")
-      print(f"Error occurred: {e.code} - {e.reason}")
-      return render_template('500.html', data = {} )
+      logging.error(f"Error occurred:  - {e}")
+      print(f"Error occurred: - {e}")
+      return render_template('500.html', data = {"error":e} )
       
 # only if script started with 'python app.py'. 
-if __name__ == "__main__" or True: #
+if __name__ == "__main__" or True: 
   host = os.getenv('FLASK_HOST', '0.0.0.0')
   port = os.getenv('FLASK_PORT', '5001')
 
-  print (f"{host =} {port =}")  
+  logging.info(f"{host =} {port =}")  
 
-  app.run(debug=False,
+  app.run(debug=True,    # Entry point
           ssl_context='adhoc',
 #          host='0.0.0.0', port=443  #requires root/sudo
-           host = host, port = port
+          host = host, port = port
           )
           
 
